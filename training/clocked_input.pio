@@ -1,0 +1,36 @@
+;
+; Copyright (c) 2021 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
+
+.program clocked_input
+    wait 0 gpio 2
+    wait 1 gpio 2
+    in pins, 1
+
+% c-sdk {
+static inline void clocked_input_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config c = clocked_input_program_get_default_config(offset);
+
+    // the "in pin" is MOSI since we want to record what the iPad says while it brings up multitouch
+    sm_config_set_in_pins(&c, pin);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+
+    sm_config_set_in_shift(
+        &c,
+        false, // Shift-to-right = false (i.e. shift to left)
+        true,  // Autopush enabled
+        8      // Autopush threshold = 8
+    );
+
+    // We only receive, so disable the TX FIFO to make the RX FIFO deeper.
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+
+    // Load our configuration, and start the program from the beginning
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

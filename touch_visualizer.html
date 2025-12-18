@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multitouch Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #1a1a1a;
+            cursor: none;
+            touch-action: none;
+        }
+        
+        .cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #00ff00;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+        }
+        
+        .trail {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: fadeOut 1s forwards;
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: scale(0);
+            }
+        }
+        
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            z-index: 10000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ff00;
+        }
+        
+        .touch-info {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        
+        .touch-info:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div style="margin-bottom: 10px; font-weight: bold;">Active Touches: <span id="touchCount">0</span></div>
+        <div id="touchList"></div>
+    </div>
+
+    <script>
+        const touchCount = document.getElementById('touchCount');
+        const touchList = document.getElementById('touchList');
+        const activeTouches = new Map();
+        
+        const colors = [
+            '#00ff00', '#00ffff', '#ff00ff', '#ffff00', 
+            '#ff6600', '#0066ff', '#ff0066', '#66ff00',
+            '#6600ff', '#ff0000'
+        ];
+        
+        function getColor(index) {
+            return colors[index % colors.length];
+        }
+        
+        function createCursor(id, color) {
+            const cursor = document.createElement('div');
+            cursor.className = 'cursor';
+            cursor.id = `cursor-${id}`;
+            cursor.style.borderColor = color;
+            cursor.style.color = color;
+            cursor.textContent = id;
+            document.body.appendChild(cursor);
+            return cursor;
+        }
+        
+        function createTrail(x, y, color) {
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = x + 'px';
+            trail.style.top = y + 'px';
+            trail.style.background = color;
+            trail.style.boxShadow = `0 0 10px ${color}`;
+            document.body.appendChild(trail);
+            setTimeout(() => trail.remove(), 1000);
+        }
+        
+        function updateTouchInfo() {
+            touchCount.textContent = activeTouches.size;
+            touchList.innerHTML = '';
+            
+            activeTouches.forEach((touch, id) => {
+                const info = document.createElement('div');
+                info.className = 'touch-info';
+                info.style.color = touch.color;
+                info.innerHTML = `
+                    <div>Touch ${id}</div>
+                    <div>X: ${Math.round(touch.x)} | Y: ${Math.round(touch.y)}</div>
+                `;
+                touchList.appendChild(info);
+            });
+        }
+        
+        document.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const id = touch.identifier;
+                const color = getColor(activeTouches.size);
+                
+                const cursor = createCursor(id, color);
+                cursor.style.left = touch.clientX + 'px';
+                cursor.style.top = touch.clientY + 'px';
+                
+                activeTouches.set(id, {
+                    x: touch.clientX,
+                    y: touch.clientY,
+                    cursor: cursor,
+                    color: color
+                });
+            }
+            
+            updateTouchInfo();
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const id = touch.identifier;
+                
+                if (activeTouches.has(id)) {
+                    const touchData = activeTouches.get(id);
+                    touchData.x = touch.clientX;
+                    touchData.y = touch.clientY;
+                    touchData.cursor.style.left = touch.clientX + 'px';
+                    touchData.cursor.style.top = touch.clientY + 'px';
+                    
+                    createTrail(touch.clientX, touch.clientY, touchData.color);
+                }
+            }
+            
+            updateTouchInfo();
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const id = touch.identifier;
+                
+                if (activeTouches.has(id)) {
+                    const touchData = activeTouches.get(id);
+                    touchData.cursor.remove();
+                    activeTouches.delete(id);
+                }
+            }
+            
+            updateTouchInfo();
+        });
+        
+        document.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const id = touch.identifier;
+                
+                if (activeTouches.has(id)) {
+                    const touchData = activeTouches.get(id);
+                    touchData.cursor.remove();
+                    activeTouches.delete(id);
+                }
+            }
+            
+            updateTouchInfo();
+        });
+        
+        // Mouse support for desktop testing
+        let mouseDown = false;
+        let mouseId = 'mouse';
+        
+        document.addEventListener('mousemove', (e) => {
+            if (mouseDown && activeTouches.has(mouseId)) {
+                const touchData = activeTouches.get(mouseId);
+                touchData.x = e.clientX;
+                touchData.y = e.clientY;
+                touchData.cursor.style.left = e.clientX + 'px';
+                touchData.cursor.style.top = e.clientY + 'px';
+                
+                createTrail(e.clientX, e.clientY, touchData.color);
+                updateTouchInfo();
+            }
+        });
+        
+        document.addEventListener('mousedown', (e) => {
+            mouseDown = true;
+            const color = getColor(0);
+            const cursor = createCursor(mouseId, color);
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            cursor.textContent = 'M';
+            
+            activeTouches.set(mouseId, {
+                x: e.clientX,
+                y: e.clientY,
+                cursor: cursor,
+                color: color
+            });
+            
+            updateTouchInfo();
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            mouseDown = false;
+            if (activeTouches.has(mouseId)) {
+                activeTouches.get(mouseId).cursor.remove();
+                activeTouches.delete(mouseId);
+                updateTouchInfo();
+            }
+        });
+    </script>
+</body>
+</html>
