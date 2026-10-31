@@ -90,7 +90,7 @@ These next few are optional. I gave up on trying to connect buttons to the Pico 
 *   Volume Down Button (on top of board)
 *   Home Button
 
-<a href="https://raw.githubusercontent.com/lemonjesus/ipad-screen-private/refs/heads/main/img/ipad-3-solderpoints.svg"><img src="./img/ipad-3-solderpoints.svg" alt="iPad 3 Solder Points" /></a>
+<a href="https://raw.githubusercontent.com/lemonjesus/ipad-touch-screen/refs/heads/main/img/ipad-3-solderpoints.svg"><img src="./img/ipad-3-solderpoints.svg" alt="iPad 3 Solder Points" /></a>
 
 Click on the image to see a larger version.
 
